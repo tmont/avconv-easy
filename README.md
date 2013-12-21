@@ -26,6 +26,9 @@ for me to run various `avconv` commands. Most notably:
     timidity binary to use if not in path (only when --midi)
 ```
 
+Sample output:
+![Sample output](./docs/output.png "Sample output after running avconv-easy")
+
 ## Examples
 Convert a MIDI file to a WAV, and then encode that WAV to MP3 and OGG
 and put the resultant files in the same directory:
