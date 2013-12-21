@@ -10,19 +10,21 @@ reset=$(tput sgr0)
 usage() {
 	cat <<USAGE
 Usage: $0 [options] files
-
+${bold}--quiet${reset}
+    Do not print anything
+${bold}--verbose${reset}
+    Print lots of boring details
 ${bold}-d,--dir directory${reset}
-	Directory to place generated files in; if omitted, the
-	current directory is assumed.
+    Directory to place generated files in; if omitted, the
+    current directory is assumed.
 ${bold}-e,--encoding mp3|ogg|mp3,ogg${reset}
-	${bold}mp3${reset}:     Encode to mp3 using libmp3lame codec
-	${bold}ogg${reset}:     Encode to ogg using libvorbis codec
-	${bold}mp3,ogg${reset}: Encode to both mp3 and ogg
+    ${bold}mp3${reset}:     Encode to mp3 using libmp3lame codec
+    ${bold}ogg${reset}:     Encode to ogg using libvorbis codec
+    ${bold}mp3,ogg${reset}: Encode to both mp3 and ogg
 ${bold}--midi${reset}
-	Convert a MIDI file to WAV using ${bold}timidity${reset}
+    Convert a MIDI file to WAV using ${bold}timidity${reset}
 ${bold}--timidity /path/to/timidity${reset}
-	${bold}timidity${reset} binary to use if not in path (only when ${bold}--midi${reset})
-
+    ${bold}timidity${reset} binary to use if not in path (only when ${bold}--midi${reset})
 USAGE
 }
 
@@ -145,6 +147,10 @@ while [[ $# > 0 ]]; do
 	shift
 
 	case ${key} in
+		-h|--help)
+			usage
+			exit 0
+			;;
 		-d|--dir)
 			dir="$1"
 			shift
@@ -174,17 +180,17 @@ done
 
 # validate args
 if [ -z "${encoding}" -a ${midi} -ne 1 ]; then
-	echo "Either ${bold}--encoding${reset} and/or ${bold}--midi${reset} must be set"
+	error "Either ${bold}--encoding${reset} and/or ${bold}--midi${reset} must be set"
 	exit 1
 fi
 if [ ! -z "${encoding}"  ]; then
 	if [ "${encoding}" != "mp3" -a "${encoding}" != "ogg" -a "${encoding}" != "mp3,ogg" ]; then
-		echo "--encoding must be one of ${bold}mp3${reset}, ${bold}ogg${reset} or ${bold}mp3,ogg${reset} ('${encoding}' was given)"
+		error "--encoding must be one of ${bold}mp3${reset}, ${bold}ogg${reset} or ${bold}mp3,ogg${reset} ('${encoding}' was given)"
 		exit 1
 	fi
 fi
 if [ ${midi} -eq 1 -a ! -x "${timidity}" ]; then
-	echo "${bold}timidity${reset} is either not in the path or not executable"
+	error "${bold}timidity${reset} is either not in the path or not executable"
 	exit 1
 fi
 
