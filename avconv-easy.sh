@@ -43,7 +43,7 @@ millis() {
 
 run() {
 	debug "\`$@\`"
-	$@ 2>&1 | logOutput $1
+	"$@" 2>&1 | logOutput $1
 	return $PIPESTATUS
 }
 
@@ -96,7 +96,7 @@ logOutput() {
 }
 
 resolveTarget() {
-	basename=`basename $1`
+	basename=`basename "$1"`
 	ext=$2
 	realTarget="${basename%.*}.${ext}"
 
