@@ -28,7 +28,6 @@ ${bold}--timidity /path/to/timidity${reset}
 USAGE
 }
 
-# http://stackoverflow.com/a/14203146 - le sigh
 encoding=
 dir=
 midi=0
@@ -142,6 +141,7 @@ getElapsed() {
 	fi
 }
 
+# http://stackoverflow.com/a/14203146 - le sigh
 while [[ $# > 0 ]]; do
 	key="$1"
 	shift
