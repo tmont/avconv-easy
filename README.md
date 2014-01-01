@@ -9,6 +9,7 @@ for me to run various `avconv` commands. Most notably:
 
 ## Usage
 ```
+Usage: ./avconv-easy.sh [options] files
 --quiet
     Do not print anything
 --verbose
@@ -20,6 +21,12 @@ for me to run various `avconv` commands. Most notably:
     mp3:     Encode to mp3 using libmp3lame codec
     ogg:     Encode to ogg using libvorbis codec
     mp3,ogg: Encode to both mp3 and ogg
+-m,--metadata key value
+    Set metadata in the audio file (only applies with --encoding);
+    these values will be applied to ALL converted files
+-p,--prompt
+    Prompt for common metadata values, if not given with --metadata
+    (promptable values are "Track", "Artist", "Album", "Year" and "Title")
 --midi
     Convert a MIDI file to WAV using timidity
 --timidity /path/to/timidity
@@ -42,6 +49,15 @@ put that MP3 in some other directory:
 
 ```bash
 ./avconv-easy.sh --verbose --encoding mp3 --dir songs lol-wma.wma
+```
+
+Create MP3s for an album with metadata, prompting for track number and title for each file:
+```bash
+./avconv-easy.sh -e mp3 -p \
+  -m album "Greatest Hits" \
+  -m year 2014 \
+  -m artist "Tommy Montgomery" \
+  GreatestHits/*.mp3
 ```
 
 Just shut the hell up and do your job!

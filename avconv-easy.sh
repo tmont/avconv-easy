@@ -21,6 +21,12 @@ ${bold}-e,--encoding mp3|ogg|mp3,ogg${reset}
     ${bold}mp3${reset}:     Encode to mp3 using libmp3lame codec
     ${bold}ogg${reset}:     Encode to ogg using libvorbis codec
     ${bold}mp3,ogg${reset}: Encode to both mp3 and ogg
+${bold}-m,--metadata key value${reset}
+    Set metadata in the audio file (only applies with ${bold}--encoding${reset});
+    these values will be applied to ALL converted files
+${bold}-p,--prompt${reset}
+    Prompt for common metadata values, if not given with ${bold}--metadata${reset}
+    (promptable values are "Track", "Artist", "Album", "Year" and "Title")
 ${bold}--midi${reset}
     Convert a MIDI file to WAV using ${bold}timidity${reset}
 ${bold}--timidity /path/to/timidity${reset}
@@ -35,6 +41,8 @@ timidity=`which timidity`
 files=()
 verbose=0
 silent=0
+declare -A metadata
+prompt=0
 
 millis() {
 	echo $(($(date +%s%N)/1000000))
@@ -42,7 +50,7 @@ millis() {
 
 run() {
 	debug "\`$@\`"
-	"$@" 2>&1 | logOutput $1
+	eval "$@" 2>&1 | logOutput $1
 	return $PIPESTATUS
 }
 
@@ -106,12 +114,36 @@ resolveTarget() {
 	fi
 }
 
+getMetaDataOptions() {
+	metaKeyLength=${#metadata[@]}
+
+	if [ ${prompt} -eq 1 ]; then
+		promptableKeys=( "title" "artist" "album" "year" "track" )
+		for metaKey in "${promptableKeys[@]}"; do
+			metaValue=${metadata[${metaKey}]}
+			if [ -z "${metaValue}" ]; then
+				read -e -p "Metadata value for \"${metaKey}\": " metaValue
+			fi
+
+			if [ ! -z "${metaValue}" ]; then
+				echo " -metadata ${metaKey}=\"${metaValue}\""
+			fi
+		done
+	fi
+
+	for metaKey in "${!metadata[@]}"; do
+		metaValue="${metadata["$metaKey"]}"
+		echo " -metadata ${metaKey}=\"${metaValue}\"";
+	done
+}
+
 encodeMp3() {
 	mp3File=$1
 	mp3Target=$(resolveTarget "${mp3File}" "mp3")
+	mp3Data=$(getMetaDataOptions)
 
 	debug "Encoding MP3 (${mp3Target})"
-	run avconv -y -i "${mp3File}" -c:a libmp3lame -b:a 320k "${mp3Target}"
+	run avconv -y -i "${mp3File}" -c:a libmp3lame -b:a 320k ${mp3Data} "${mp3Target}"
 	if [ $? -ne 0 ]; then
 		error "Failed to encode MP3"
 		exit 1
@@ -122,9 +154,10 @@ encodeMp3() {
 encodeOgg() {
 	oggFile=$1
 	oggTarget=$(resolveTarget "${oggFile}" "ogg")
+	oggData=$(getMetaDataOptions)
 
 	debug "Encoding OGG (${oggTarget})"
-	run avconv -y -i "${oggFile}" -c:a libvorbis -q:a 4 "${oggTarget}"
+	run avconv -y -i "${oggFile}" -c:a libvorbis -q:a 4 ${oggData} "${oggTarget}"
 	if [ $? -ne 0 ]; then
 		error "Failed to encode OGG"
 		exit 1
@@ -158,6 +191,15 @@ while [[ $# > 0 ]]; do
 		-e|--encoding)
 			encoding="$1"
 			shift
+			;;
+		-m|--metadata)
+			key=$1
+			metadata+=(["${key,,}"]="$2")
+			shift
+			shift
+			;;
+		-p|--prompt)
+			prompt=1
 			;;
 		--midi)
 			midi=1
