@@ -43,6 +43,7 @@ verbose=0
 silent=0
 declare -A metadata
 prompt=0
+metadataOptions=
 
 millis() {
 	echo $(($(date +%s%N)/1000000))
@@ -114,36 +115,36 @@ resolveTarget() {
 	fi
 }
 
-getMetaDataOptions() {
-	metaKeyLength=${#metadata[@]}
+setMetadataOptions() {
+	if [ -z "${metadataOptions}" ]; then
+		if [ ${prompt} -eq 1 ]; then
+			promptableKeys=( "title" "artist" "album" "year" "track" )
+			for metaKey in "${promptableKeys[@]}"; do
+				metaValue=${metadata[${metaKey}]}
+				if [ -z "${metaValue}" ]; then
+					read -e -p "Metadata value for \"${metaKey}\": " metaValue
+				fi
 
-	if [ ${prompt} -eq 1 ]; then
-		promptableKeys=( "title" "artist" "album" "year" "track" )
-		for metaKey in "${promptableKeys[@]}"; do
-			metaValue=${metadata[${metaKey}]}
-			if [ -z "${metaValue}" ]; then
-				read -e -p "Metadata value for \"${metaKey}\": " metaValue
-			fi
+				if [ -n "${metaValue}" ]; then
+					metadataOptions="${metadataOptions} -metadata ${metaKey}=\"${metaValue}\""
+				fi
+			done
+		fi
 
-			if [ ! -z "${metaValue}" ]; then
-				echo " -metadata ${metaKey}=\"${metaValue}\""
-			fi
+		for metaKey in "${!metadata[@]}"; do
+			metaValue="${metadata["$metaKey"]}"
+			metadataOptions="${metadataOptions} -metadata ${metaKey}=\"${metaValue}\"";
 		done
 	fi
-
-	for metaKey in "${!metadata[@]}"; do
-		metaValue="${metadata["$metaKey"]}"
-		echo " -metadata ${metaKey}=\"${metaValue}\"";
-	done
 }
 
 encodeMp3() {
 	mp3File=$1
 	mp3Target=$(resolveTarget "${mp3File}" "mp3")
-	mp3Data=$(getMetaDataOptions)
+	setMetadataOptions
 
 	debug "Encoding MP3 (${mp3Target})"
-	run avconv -y -i "${mp3File}" -c:a libmp3lame -b:a 320k ${mp3Data} "${mp3Target}"
+	run ffmpeg -y -i "${mp3File}" -c libmp3lame -b:a 320k ${metadataOptions} "${mp3Target}"
 	if [ $? -ne 0 ]; then
 		error "Failed to encode MP3"
 		exit 1
@@ -154,10 +155,10 @@ encodeMp3() {
 encodeOgg() {
 	oggFile=$1
 	oggTarget=$(resolveTarget "${oggFile}" "ogg")
-	oggData=$(getMetaDataOptions)
+	setMetadataOptions
 
 	debug "Encoding OGG (${oggTarget})"
-	run avconv -y -i "${oggFile}" -c:a libvorbis -q:a 4 ${oggData} "${oggTarget}"
+	run ffmpeg -y -i "${oggFile}" -c libvorbis -aq 4 ${metadataOptions} "${oggTarget}"
 	if [ $? -ne 0 ]; then
 		error "Failed to encode OGG"
 		exit 1
@@ -174,7 +175,6 @@ getElapsed() {
 	fi
 }
 
-# http://stackoverflow.com/a/14203146 - le sigh
 while [[ $# > 0 ]]; do
 	key="$1"
 	shift
